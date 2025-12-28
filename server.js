@@ -30,27 +30,41 @@ app.post("/company", upload.single("logo"), async (req, res) => {
   try {
     const { name, email } = req.body;
 
-    // Save image to GridFS
-    const uploadStream = gfsBucket.openUploadStream(req.file.originalname, {
-      contentType: req.file.mimetype,
-    });
+    if (!req.file) {
+      return res.status(400).json({ error: "Logo file is required" });
+    }
+
+    const uploadStream = gfsBucket.openUploadStream(
+      req.file.originalname,
+      { contentType: req.file.mimetype }
+    );
 
     uploadStream.end(req.file.buffer);
 
-    uploadStream.on("finish", async (file) => {
+    uploadStream.on("finish", async () => {
       const company = {
         name,
         email,
-        logoId: file._id,
+        logoId: uploadStream.id, // ✅ FIX HERE
       };
 
       await db.collection("companies").insertOne(company);
-      res.json({ message: "Company saved successfully" });
+
+      res.json({
+        message: "Company saved successfully",
+        company,
+      });
     });
+
+    uploadStream.on("error", (err) => {
+      res.status(500).json({ error: err.message });
+    });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 /* -------------------- Get Companies -------------------- */
 app.get("/companies", async (req, res) => {
