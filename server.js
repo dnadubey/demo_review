@@ -8,7 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const MONGO_URI = "mongodb+srv://adityadubey:Nh3JbOX2LHQm4dTv@cluster0.k3jf7tw.mongodb.net/psreviews";
+const MONGO_URI = "mongodb+srv://adityadubey:Nh3JbOX2LHQm4dTv@cluster0.k3jf7tw.mongodb.net/demoreview";
 const PORT = 3000;
 
 /* -------------------- Mongo Connection -------------------- */
