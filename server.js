@@ -26,12 +26,14 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 /* -------------------- Save Company -------------------- */
+
 app.post("/company", upload.single("logo"), async (req, res) => {
   try {
-    const { name, email } = req.body;
+    console.log("REQ BODY:", req.body);
+    console.log("REQ FILE:", !!req.file);
 
-    if (!req.file) {
-      return res.status(400).json({ error: "Logo file is required" });
+    if (!db) {
+      return res.status(500).json({ error: "DB not initialized" });
     }
 
     const uploadStream = gfsBucket.openUploadStream(
@@ -42,28 +44,64 @@ app.post("/company", upload.single("logo"), async (req, res) => {
     uploadStream.end(req.file.buffer);
 
     uploadStream.on("finish", async () => {
+      console.log("GridFS upload finished");
+
       const company = {
-        name,
-        email,
-        logoId: uploadStream.id, // ✅ FIX HERE
+        name: req.body.name,
+        email: req.body.email,
+        logoId: uploadStream.id,
       };
 
-      await db.collection("companies").insertOne(company);
+      const result = await db.collection("companies").insertOne(company);
+      console.log("Company inserted:", result.insertedId);
 
-      res.json({
-        message: "Company saved successfully",
-        company,
-      });
-    });
-
-    uploadStream.on("error", (err) => {
-      res.status(500).json({ error: err.message });
+      res.json({ success: true });
     });
 
   } catch (err) {
+    console.error("ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
+// app.post("/company", upload.single("logo"), async (req, res) => {
+//   try {
+//     const { name, email } = req.body;
+
+//     if (!req.file) {
+//       return res.status(400).json({ error: "Logo file is required" });
+//     }
+
+//     const uploadStream = gfsBucket.openUploadStream(
+//       req.file.originalname,
+//       { contentType: req.file.mimetype }
+//     );
+
+//     uploadStream.end(req.file.buffer);
+
+//     uploadStream.on("finish", async () => {
+//       const company = {
+//         name,
+//         email,
+//         logoId: uploadStream.id, // ✅ FIX HERE
+//       };
+
+//       await db.collection("companies").insertOne(company);
+
+//       res.json({
+//         message: "Company saved successfully",
+//         company,
+//       });
+//     });
+
+//     uploadStream.on("error", (err) => {
+//       res.status(500).json({ error: err.message });
+//     });
+
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
 
 /* -------------------- Get Companies -------------------- */
